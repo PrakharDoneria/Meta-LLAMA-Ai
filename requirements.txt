@@ -3,3 +3,6 @@ gradio_client
 Flask
 subprocess.run
 telepot
+gpt4free
+curl-cffi
+g4f

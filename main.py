@@ -4,9 +4,11 @@ from flask import Flask, request, jsonify
 from gradio_client import Client
 import telepot
 from flask_cors import CORS
+from g4f.client import Client
+
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+CORS(app)  
 
 client = Client("huggingface-projects/llama-2-13b-chat")
 
@@ -52,6 +54,59 @@ def predict():
         print(error_message)
         bot.sendMessage(2044807224, error_message)
         return jsonify({"error": str(e)})
+
+@app.route('/gpt4o', methods=['GET'])
+def gpt4o():
+    return get_ai_response("gpt-4o")
+
+@app.route('/advance', methods=['POST'])
+def advance():
+    try:
+        data = request.get_json()
+        if not data or "messages" not in data:
+            return jsonify({"error": "Invalid input, 'messages' field is required"}), 400
+
+        client = Client()
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=data["messages"],
+        )
+
+        if response.choices:
+            return jsonify({"response": response.choices[0].message.content})
+        else:
+            return jsonify({"error": "Failed to get response from the model"}), 500
+    except KeyError as e:
+        return jsonify({"error": f"KeyError: {str(e)}"}), 500
+    except ValueError as e:
+        return jsonify({"error": f"ValueError: {str(e)}"}), 500
+    except Exception as e:
+        return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+
+def get_ai_response(model_name):
+    try:
+        prompt = request.args.get('prompt')
+        if not prompt:
+            return jsonify({"error": "No prompt provided"}), 400
+
+        client = Client()
+        response = client.chat.completions.create(
+            model=model_name,
+            messages=[{"role": "user", "content": prompt}],
+        )
+
+        if response.choices:
+            return jsonify({"response": response.choices[0].message.content})
+        else:
+            return jsonify({"error": f"Failed to get response from {model_name}"}), 500
+    except KeyError as e:
+        return jsonify({"error": f"KeyError: {str(e)}"}), 500
+    except ValueError as e:
+        return jsonify({"error": f"ValueError: {str(e)}"}), 500
+    except Exception as e:
+        return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+
+
 
 if __name__ == '__main__':
     try:
